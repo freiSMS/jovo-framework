@@ -1,6 +1,7 @@
 import * as ua from 'universal-analytics';
 import _merge = require('lodash.merge');
 import * as crypto from 'crypto';
+import * as util from 'util';
 import { Analytics, BaseApp, ErrorCode, HandleRequest, JovoError, Log } from 'jovo-core';
 import { Jovo } from 'jovo-framework';
 import {
@@ -147,7 +148,7 @@ export class GoogleAnalytics implements Analytics {
    * Auto send intent data after each response. Also setting sessions and flowErrors
    * @param handleRequest
    */
-  track(handleRequest: HandleRequest) {
+  async track(handleRequest: HandleRequest) {
     const jovo: Jovo = handleRequest.jovo!;
     if (!jovo) {
       throw new JovoError(
@@ -183,11 +184,24 @@ export class GoogleAnalytics implements Analytics {
       this.sendUnhandledEvents(jovo);
       this.sendIntentInputEvents(jovo);
     }
-    jovo.$googleAnalytics.visitor?.send((err: any) => {
+
+    /* const gAnalyticsPromised = util.promisify(jovo.$googleAnalytics.visitor?.send);
+    const promise =  await gAnalyticsPromised(undefined); */    
+
+    return new Promise((resolve, reject) => {
+      jovo.$googleAnalytics.visitor?.send((error, response: any) => {
+        if(error) { reject(error); }
+        else { resolve(response); }
+      })
+    })
+
+    // jovo.$googleAnalytics.visitor?.send();
+
+    /* jovo.$googleAnalytics.visitor?.send((err: any) => {
       if (err) {
         throw new JovoError(err.message, ErrorCode.ERR_PLUGIN, 'jovo-analytics-googleanalytics');
       }
-    });
+    }); */
   }
 
   protected checkForMissingCustomEntriesInConfig(
